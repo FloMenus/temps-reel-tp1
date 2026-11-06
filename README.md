@@ -1,6 +1,14 @@
 ## Lien repo: ##
 https://github.com/FloMenus/temps-reel-tp1
 
+## Lancement ##
+
+```
+docker compose up --build -d
+```
+
+Le serveur répond sur http://localhost:3000. Page de suivi d'une commande : http://localhost:3000/?id=1
+
 ## Routes ##
 
 - `GET /users` : liste des utilisateurs (200)
@@ -11,5 +19,6 @@ https://github.com/FloMenus/temps-reel-tp1
 - `GET /orders/:id` : une commande (200, 404)
 - `POST /orders` `{ userId, productId, quantity }` : crée une commande (201, 400 invalide, 404 client/produit inconnu, 409 stock insuffisant)
 - `PUT /orders/:id/status` `{ status }` : change le statut (200, 400 status manquant, 404, 409 transition interdite)
+- `GET /stream` : flux SSE (événements `order-created`, `order-status`, `order-cancelled`, `stock-updated`)
 
 
