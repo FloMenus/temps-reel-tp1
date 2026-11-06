@@ -1,4 +1,3 @@
 import { Request, Response } from "express";
-import { db, User } from "../db";
-
+import { db } from "../db";
 
