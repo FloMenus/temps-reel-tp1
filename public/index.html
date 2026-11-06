@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+
+<h1>Page web</h1>
+<p>Liste des utilisateurs:</p>
+<ul id="userList"></ul>
+
+
+<script>
+    // Une seule connexion au serveur, qui reste ouverte (Server-Sent Events)
+    const source = new EventSource("/users/stream");
+    const userList = document.getElementById("userList");
+
+    // Liste complète, envoyée une fois à la connexion (et à chaque reconnexion)
+    source.addEventListener("init", (e) => {
+        userList.innerHTML = "";
+        JSON.parse(e.data).forEach(addUser);
+    });
+
+    source.addEventListener("user-added", (e) => {
+        addUser(JSON.parse(e.data));
+    });
+
+    source.addEventListener("user-deleted", (e) => {
+        removeUser(JSON.parse(e.data).id);
+    });
+
+    source.onerror = () => {
+        console.log("Coupure, reconnexion automatique…");
+    };
+
+    function addUser(user) {
+        const listItem = document.createElement("li");
+        listItem.id = `user-${user.id}`;
+        listItem.textContent = `ID: ${user.id}, Name: ${user.name}, Email: ${user.email}`;
+        userList.appendChild(listItem);
+    }
+
+    function removeUser(id) {
+        document.getElementById(`user-${id}`)?.remove();
+    }
+</script>
