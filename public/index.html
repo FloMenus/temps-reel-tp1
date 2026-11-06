@@ -1,41 +1,23 @@
 <!DOCTYPE html>
 
-<h1>Page web</h1>
-<p>Liste des utilisateurs:</p>
-<ul id="userList"></ul>
-
+<h1>Suivi de commande</h1>
+<p>Statut : <span id="status"></span></p>
 
 <script>
-    // Une seule connexion au serveur, qui reste ouverte (Server-Sent Events)
-    const source = new EventSource("/users/stream");
-    const userList = document.getElementById("userList");
+    const id = Number(new URLSearchParams(location.search).get("id"));
+    const status = document.getElementById("status");
 
-    // Liste complète, envoyée une fois à la connexion (et à chaque reconnexion)
-    source.addEventListener("init", (e) => {
-        userList.innerHTML = "";
-        JSON.parse(e.data).forEach(addUser);
-    });
+    fetch(`/orders/${id}`)
+        .then((res) => res.json())
+        .then((order) => status.textContent = order.status ?? order.error);
 
-    source.addEventListener("user-added", (e) => {
-        addUser(JSON.parse(e.data));
-    });
+    const source = new EventSource("/stream");
 
-    source.addEventListener("user-deleted", (e) => {
-        removeUser(JSON.parse(e.data).id);
-    });
-
-    source.onerror = () => {
-        console.log("Coupure, reconnexion automatique…");
-    };
-
-    function addUser(user) {
-        const listItem = document.createElement("li");
-        listItem.id = `user-${user.id}`;
-        listItem.textContent = `ID: ${user.id}, Name: ${user.name}, Email: ${user.email}`;
-        userList.appendChild(listItem);
+    function update(e) {
+        const order = JSON.parse(e.data);
+        if (order.id === id) status.textContent = order.status;
     }
 
-    function removeUser(id) {
-        document.getElementById(`user-${id}`)?.remove();
-    }
+    source.addEventListener("order-status", update);
+    source.addEventListener("order-cancelled", update);
 </script>
