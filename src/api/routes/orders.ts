@@ -1,5 +1,6 @@
 import express from "express";
 import { db } from "../db";
+import { broadcast } from "../sse";
 import User from "../../models/User";
 import Product from "../../models/Product";
 import Order, { Status } from "../../models/Order";
@@ -42,6 +43,7 @@ router.post("/orders", async (req, res) => {
   }
 
   await db.push(`/products[${index}]/stock`, product.stock - quantity);
+  broadcast("stock-updated", { productId, stock: product.stock - quantity });
  
   const order: Order = {
     id: (await db.count("/orders")) + 1,
@@ -52,6 +54,7 @@ router.post("/orders", async (req, res) => {
     createdAt: new Date().toISOString(),
   };
   await db.push("/orders[]", order);
+  broadcast("order-created", order);
   res.status(201).json(order);
 });
 
@@ -86,18 +89,22 @@ router.put("/orders/:id/status", async (req, res) => {
     const productIndex = await db.getIndex("/products", order.productId, "id");
     const stock = await db.getObject<number>(`/products[${productIndex}]/stock`);
     await db.push(`/products[${productIndex}]/stock`, stock + order.quantity);
+    broadcast("stock-updated", { productId: order.productId, stock: stock + order.quantity });
   }
 
   await db.push(`/orders[${index}]/status`, next);
   if (next === "shipped") scheduleDelivery(order.id);
+  broadcast(next === "cancelled" ? "order-cancelled" : "order-status", { ...order, status: next });
   res.json({ ...order, status: next });
 });
 
 function scheduleDelivery(orderId: number): void {
   setTimeout(async () => {
     const index = await db.getIndex("/orders", orderId, "id");
-    const status = await db.getObject<Status>(`/orders[${index}]/status`);
-    if (status === "shipped") await db.push(`/orders[${index}]/status`, "delivered");
+    const order = await db.getObject<Order>(`/orders[${index}]`);
+    if (order.status !== "shipped") return;
+    await db.push(`/orders[${index}]/status`, "delivered");
+    broadcast("order-status", { ...order, status: "delivered" });
   }, 20000);
 }
 
