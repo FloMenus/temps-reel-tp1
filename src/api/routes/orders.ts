@@ -2,7 +2,7 @@ import express from "express";
 import { db } from "../db";
 import User from "../../models/User";
 import Product from "../../models/Product";
-import Order from "../../models/Order";
+import Order, { Status } from "../../models/Order";
 
 const router = express.Router();
 
@@ -53,6 +53,35 @@ router.post("/orders", async (req, res) => {
   };
   await db.push("/orders[]", order);
   res.status(201).json(order);
+});
+
+const nextStatus: Partial<Record<Status, Status>> = {
+  preparing: "shipped",
+  shipped: "delivered",
+};
+
+router.patch("/orders/:id/status", async (req, res) => {
+  const status: unknown = req.body?.status;
+  if (typeof status !== "string") {
+    res.status(400).json({ error: "status est obligatoire" });
+    return;
+  }
+
+  const index = await db.getIndex("/orders", Number(req.params.id), "id");
+  if (index === -1) {
+    res.status(404).json({ error: "Commande introuvable" });
+    return;
+  }
+
+  const order = await db.getObject<Order>(`/orders[${index}]`);
+  const next = nextStatus[order.status];
+  if (!next || status !== next) {
+    res.status(409).json({ error: `Transition impossible : ${order.status} -> ${status}` });
+    return;
+  }
+
+  await db.push(`/orders[${index}]/status`, next);
+  res.json({ ...order, status: next });
 });
 
 export default router;
