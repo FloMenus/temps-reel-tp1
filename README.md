@@ -9,6 +9,8 @@ docker compose up --build -d
 
 Le serveur répond sur http://localhost:3000. Page de suivi d'une commande : http://localhost:3000/?id=1
 
+Une première commande (id 1) est présente dans la base dès le départ, pour tester la page de suivi directement.
+
 ## Routes ##
 
 - `GET /users` : liste des utilisateurs (200)
