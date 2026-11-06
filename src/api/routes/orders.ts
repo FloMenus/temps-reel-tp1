@@ -55,12 +55,14 @@ router.post("/orders", async (req, res) => {
   res.status(201).json(order);
 });
 
-const nextStatus: Partial<Record<Status, Status>> = {
-  preparing: "shipped",
-  shipped: "delivered",
+const transitions: Record<Status, Status[]> = {
+  preparing: ["shipped", "cancelled"],
+  shipped: ["delivered"],
+  delivered: [],
+  cancelled: [],
 };
 
-router.patch("/orders/:id/status", async (req, res) => {
+router.put("/orders/:id/status", async (req, res) => {
   const status: unknown = req.body?.status;
   if (typeof status !== "string") {
     res.status(400).json({ error: "status est obligatoire" });
@@ -74,10 +76,16 @@ router.patch("/orders/:id/status", async (req, res) => {
   }
 
   const order = await db.getObject<Order>(`/orders[${index}]`);
-  const next = nextStatus[order.status];
-  if (!next || status !== next) {
+  const next = transitions[order.status].find((s) => s === status);
+  if (!next) {
     res.status(409).json({ error: `Transition impossible : ${order.status} -> ${status}` });
     return;
+  }
+
+  if (next === "cancelled") {
+    const productIndex = await db.getIndex("/products", order.productId, "id");
+    const stock = await db.getObject<number>(`/products[${productIndex}]/stock`);
+    await db.push(`/products[${productIndex}]/stock`, stock + order.quantity);
   }
 
   await db.push(`/orders[${index}]/status`, next);
