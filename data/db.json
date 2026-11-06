@@ -1,2 +1,12 @@
 {
+  "users": [
+    { "id": 1, "name": "Alice Malice", "username": "aliceMal", "email": "alicemal@example.com" },
+    { "id": 2, "name": "Bob Dylan", "username": "bobD", "email": "bobd@example.com" }
+  ],
+  "products": [
+    { "id": 1, "name": "Clavier mécanique Wooting", "stock": 14 },
+    { "id": 2, "name": "Souris sans fil Logitech", "stock": 6 },
+    { "id": 3, "name": "Écran 27 pouces BenQ", "stock": 3 }
+  ],
+  "orders": []
 }
