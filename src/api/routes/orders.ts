@@ -89,7 +89,19 @@ router.put("/orders/:id/status", async (req, res) => {
   }
 
   await db.push(`/orders[${index}]/status`, next);
+  if (next === "shipped") scheduleDelivery(order.id);
   res.json({ ...order, status: next });
 });
+
+function scheduleDelivery(orderId: number): void {
+  setTimeout(async () => {
+    const index = await db.getIndex("/orders", orderId, "id");
+    const status = await db.getObject<Status>(`/orders[${index}]/status`);
+    if (status === "shipped") await db.push(`/orders[${index}]/status`, "delivered");
+  }, 20000);
+}
+
+db.filter<Order>("/orders", (o: Order) => o.status === "shipped").then((orders) =>
+  orders?.forEach((o) => scheduleDelivery(o.id)));
 
 export default router;
